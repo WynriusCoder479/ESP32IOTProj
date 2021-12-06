@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Config Wifi App</title>
+</head>
+
+<body>
+    <form action="/WriteEEPROM" method='GET' id='nameform'>
+
+        <Table align="center" border="1">
+            <tr>
+                <th colspan="2">
+                    <h1>CONFIG WIFI</h1>
+                </th>
+            </tr>
+            <tr>
+                <th>
+                    <label for="SSID">SSID1:</label>
+                </th>
+                <th>
+                    <input type="text" id="fname" name="fname" placeholder="SSID">
+                </th>
+            </tr>
+            <tr>
+                <th>
+                    <label for="Password">Password1:</label>
+                </th>
+                <th>
+                    <input type="text" id="lname" name="lname" placeholder="PASSWORD">
+                </th>
+            </tr>
+            <tr>
+                <th colspan="2">
+                    <h1>CONFIG MQTT</h1>
+                </th>
+            </tr>
+            <tr>
+                <th>
+                    <label for="HOST">Host:</label>
+                </th>
+                <th>
+                    <input type="text" id="host" name="host" placeholder="Host IP">
+                </th>
+            </tr>
+            <tr>
+                <th>
+                    <label for="username">Username: </label>
+                </th>
+                <th>
+                    <input type="text" id="Username" name="Username" placeholder="Username">
+                </th>
+            </tr>
+            <tr>
+                <th>
+                    <label for="Password">Password:</label>
+                </th>
+                <th>
+                    <input type="text" id="Password" name="Password" placeholder="Password">
+                </th>
+            </tr>
+            <tr>
+                <th colspan="2">
+                    <input type="submit" value="Ok">
+                </th>
+            </tr>
+        </Table>
+    </form>
+
+</body>
+
+</html>
