@@ -8,13 +8,27 @@
 #include <UsingEEPROM.h>
 #include <ArduinoJson.h>
 
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
+#include <DHT_U.h>
+
+
 #include "FS.h"
 #include "SPIFFS.h"
 
 #include <MQTT.h>
 
-#define ledPin 2
+#define lamp1Pin 2
+#define lamp2Pin 21
+#define fanPin 19
+#define fanSpeed 18
+#define DHTPIN 4
+#define gasPin 34
+#define gasStatusPin 35
+
 #define MQTTPORT 1883
+
+#define DHTTYPE DHT11
 
 //Set ssidAP ans passwordAP
 const char *ssidAP = "TranDangKhoaAP";
@@ -26,6 +40,8 @@ MQTTClient client;
 
 AsyncWebServer serverConfig(80);
 bool APCheck = true;  
+
+DHT dhtSensor(DHTPIN, DHTTYPE);
 
 //Varialble
 const int ssidAdd = 0;
@@ -40,10 +56,13 @@ const char* hostParam = "host";
 const char* UsernameParam = "Username";
 const char* PasswordParam = "Password";
 
-String StatusState;
 unsigned long timeSet;
 
-const int potPin = 34;
+const int freq = 5000;
+const int ledChannel = 0;
+const int resolution = 8;
+
+int dutyCycle;
 
 //Function
 
@@ -116,28 +135,43 @@ void ConfigApp() {
   });
 }
 
-String processor(const String& var) {
-  if (var == "STATE") {
-    if (StatusState == "Status 2") {
-      StatusState = "Status 1";
-    }
-    else {
-      StatusState = "Status 2";
-    }
-    return StatusState;
-  }
-  return String();
-}
-
 void MessageReceived(String &topic, String &payload) {
   //Serial.println("incoming: " + topic + " - " + payload);
   
-  if(payload == "LED ON"){
-    digitalWrite(ledPin, 1);
+  if(payload == "LAMP1 ON"){
+    digitalWrite(lamp1Pin, 1);
+    Serial.println(payload);
   }
-  else if(payload == "LED OFF"){
-    digitalWrite(ledPin, 0);
+  else if(payload == "LAMP1 OFF"){
+    digitalWrite(lamp1Pin, 0);
+    Serial.println(payload);
   }
+  if(payload == "LAMP2 ON"){
+    digitalWrite(lamp2Pin, 1);
+    Serial.println(payload);
+  }
+  else if(payload == "LAMP2 OFF"){
+    digitalWrite(lamp2Pin, 0);
+    Serial.println(payload);
+  }
+
+  if(payload == "FAN ON"){
+    digitalWrite(fanPin, 1);
+    Serial.println(payload);
+  }
+  else if(payload == "FAN OFF"){
+    digitalWrite(fanPin, 0);
+    Serial.println(payload);
+    dutyCycle = 0;
+  }
+
+  if(payload != "LAMP1 ON" && payload != "LAMP1 OFF"&&payload != "LAMP2 ON" && payload != "LAMP2 OFF" && payload != "FAN ON"&&payload != "FAN OFF") {
+    if(digitalRead(fanPin)){
+      dutyCycle = payload.toInt();
+      Serial.println(payload);
+
+    } 
+  } 
 }
 
 void ConnectMQTT(String username, String password) {
@@ -155,7 +189,16 @@ void ConnectMQTT(String username, String password) {
 
 void setup() {
   Serial.begin(115200);
-  pinMode(ledPin, OUTPUT);
+  pinMode(lamp1Pin, OUTPUT);
+  pinMode(lamp2Pin, OUTPUT);
+  pinMode(fanPin, OUTPUT);
+  pinMode(fanSpeed, OUTPUT);
+  pinMode(DHTPIN, OUTPUT);
+  pinMode(gasPin, INPUT);
+  pinMode(gasStatusPin, INPUT);
+  ledcSetup(ledChannel, freq, resolution);
+  ledcAttachPin(fanSpeed, ledChannel);
+  dhtSensor.begin();
 
   if (!EEPROM.begin(512)) {
     Serial.println("failed to initialise EEPROM");
@@ -204,22 +247,29 @@ void setup() {
 void loop() {
   if (!APCheck) {
     StaticJsonDocument<1000> doc;
+    float hum = dhtSensor.readHumidity();
+    float heat = dhtSensor.readTemperature();
+    float gas = analogRead(gasPin);
+    int  gasStatus= digitalRead(gasStatusPin);
+    ledcWrite(ledChannel, dutyCycle);
 
-    doc["sensor"] = "Potention";
-    doc["value"] = analogRead(potPin);
-    doc["value1"] = random(0, 4095);
-    doc["value2"] = random(0, 4095);
-    doc["LedState"] = digitalRead(ledPin);
+    doc["Temp"]= heat;
+    doc["Hum"]=hum;
+    doc["Gas"]= gas;
+    doc["GasStatus"]=gasStatus;
+    doc["Lamp1"]=digitalRead(lamp1Pin);
+    doc["Lamp2"]=digitalRead(lamp2Pin);
+    doc["Fan"]=digitalRead(fanPin);
+    doc["FanSpeed"]= dutyCycle;
 
     char out[128];
 
-    int benit = serializeJson(doc, out);
+    serializeJson(doc, out);
 
     client.loop();
-    if((unsigned long)(millis()-timeSet)>500){
-      timeSet = millis();
-      // client.publish("MyLAP", (String)analogRead(potPin));
-      client.publish("MyLAP", out);
+    if((unsigned long)(millis()-timeSet)>1000){
+       timeSet = millis();
+        client.publish("CS", out);
     }
   }
 }
